@@ -1,4 +1,4 @@
-This is a test.
+*This is a test*.
 
 This repository will contain a number of projects related to semantic modeling, code generation and development tools.
 
