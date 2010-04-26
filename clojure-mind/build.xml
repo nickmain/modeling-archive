@@ -1,0 +1,17 @@
+<project basedir="." default="" name="ClojureMind">
+
+	<property file="build.properties" />
+	
+	<!-- Build and deploy to Freemind -->
+	<target name="build-and-deploy" >
+	
+	</target>
+	
+    <!-- Build and make release ZIP -->
+    <target name="build-and-release" >
+    
+    </target>
+	
+	
+	
+</project>

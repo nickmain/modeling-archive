@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="/Applications/FreeMind.app/Contents/Resources/Java/lib/freemind.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/common"/>
+	<classpathentry kind="lib" path="/common/lib/clojure/clojure.jar"/>
+	<classpathentry kind="lib" path="/Users/nickmain/workspace/Anaphor/clojure-mind/clojure-contrib.jar" sourcepath="/Users/nickmain/workspace/Anaphor/clojure-mind/clojure-contrib-src.jar"/>
+	<classpathentry kind="lib" path="/Users/nickmain/workspace/Anaphor/clojure-mind/classes"/>
+	<classpathentry kind="output" path="eclipse-build"/>
+</classpath>

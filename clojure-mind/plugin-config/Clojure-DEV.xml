@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<plugin label="plugins/clojure">
+	<plugin_classpath jar="/Users/nickmain/workspace/Anaphor/clojure-mind/eclipse-build" />
+	<plugin_classpath jar="/Users/nickmain/workspace/Anaphor/common/lib/clojure/clojure.jar" />
+	<plugin_registration 
+	    class_name="anaphor.freemind.ClojureRegistration"
+		isPluginBase="true">
+		<plugin_mode class_name="freemind.modes.mindmapmode" />
+	</plugin_registration>
+	<plugin_action 
+		name="clojure_hook_name" 
+		base="freemind.extensions.PermanentNodeHookAdapter"
+		label="clojure_hook" 
+		class_name="anaphor.freemind.ClojureNodeHook" 
+		instanciation="Once">
+		<plugin_mode class_name="freemind.modes.mindmapmode" />
+	</plugin_action>
+</plugin>
