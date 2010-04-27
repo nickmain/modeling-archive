@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) David N Main. All rights reserved.
+ */
 package anaphor.freemind;
 
 import java.util.logging.Logger;
@@ -13,6 +16,14 @@ import freemind.modes.MindMapNode;
 import freemind.modes.ModeController;
 import freemind.modes.mindmapmode.MindMapController;
 
+/**
+ * Plugin Registration. Referenced by plugin XML config.
+ * 
+ * Adds a listener to the mindmap model that passes events to the Clojure
+ * handler. 
+ *
+ * @author nickmain
+ */
 public class ClojureRegistration implements HookRegistration {
 
     static final Logger logger = Logger.getLogger( "Clojure" );
@@ -32,8 +43,6 @@ public class ClojureRegistration implements HookRegistration {
     
     private final MindMapController controller;
     private TreeModelListener listener;
-
-    
     
     public ClojureRegistration( ModeController controller, MindMap map ) {
         this.controller = (MindMapController) controller;
@@ -48,28 +57,28 @@ public class ClojureRegistration implements HookRegistration {
         //add a listener to the mindmap model
         listener = new TreeModelListener() {
             @Override public void treeNodesChanged( TreeModelEvent e ) {
-                ClojureRegistration.logger.info( "**** treeNodesChanged ****" );
-                
                 Object[] path = e.getPath();
                 MindMapNode node = (MindMapNode) path[path.length - 1];
                 
                 Thread.currentThread().setContextClassLoader( loader );
                 try {
                     RT.var( "anaphor.freemind.clojuremind", "on-node-change" )
-                      .invoke( controller, node );
+                      .invoke( node );
                 }
                 catch( Exception ex ) {
                     ClojureRegistration.logger.warning( "Clojure Exception: " + ex.getMessage() );
+                    node.setText( "Clojure Exception: " + ex.getMessage() );
+                    controller.nodeRefresh( node );
                 }            
             }
             @Override public void treeNodesInserted( TreeModelEvent e ) {
-                //TODO
+                //nothing
             }
             @Override public void treeNodesRemoved( TreeModelEvent e ) {
-                //TODO
+                //nothing
             }
             @Override public void treeStructureChanged( TreeModelEvent e ) {
-                //TODO
+                //nothing
             }
         };
         
