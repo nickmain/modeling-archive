@@ -8,11 +8,19 @@
 		<plugin_mode class_name="freemind.modes.mindmapmode" />
 	</plugin_registration>
 	<plugin_action 
-		name="clojure_hook_name" 
+		name="clojure_init_hook_name" 
 		base="freemind.extensions.PermanentNodeHookAdapter"
-		label="clojure_hook" 
-		class_name="anaphor.freemind.ClojureNodeHook" 
+		label="clojure_init_hook" 
+		class_name="anaphor.freemind.ClojureInitHook" 
 		instanciation="Once">
 		<plugin_mode class_name="freemind.modes.mindmapmode" />
 	</plugin_action>
+	<plugin_action 
+        name="clojure_hook_name" 
+        base="freemind.extensions.PermanentNodeHookAdapter"
+        label="clojure_hook" 
+        class_name="anaphor.freemind.ClojureNodeHook" 
+        instanciation="Once">
+        <plugin_mode class_name="freemind.modes.mindmapmode" />
+    </plugin_action>
 </plugin>

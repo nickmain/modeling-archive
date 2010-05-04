@@ -3,60 +3,107 @@
 (ns #^{:doc    "Handler functions for mindmap commands"
        :author "Nick Main"}
   anaphor.freemind.clojuremind
-  (:use anaphor.freemind.mindmap))
+  (:use anaphor.freemind.mindmap)
+  (:use anaphor.freemind.treesource))
 
-(defn eval-string [s] 
-  (try (str (load-string s))  
-    (catch Exception ex (.getMessage ex))))
+(def warning-icon (freemind-icon "messagebox_warning"))
+(def ok-icon      (freemind-icon "button-ok"))
 
-; gather text of a node and all descendants
-(defn node-and-child-text [node]
-  (str 
-    (.getText node) 
-    " "
-    (apply str (map node-and-child-text (.getChildren node)))))
+; set node text in red with a warning icon
+(defn set-error-text! [node text] (set-node-text! node text 16rff0000 warning-icon))
 
-(defn node-above [node]
-  (let [parent (.getParentNode node)]
-    (let [posn (.getChildPosition parent node)]
-      (if (> posn 0)
-        (.. parent (getChildren) (get (- posn 1)))
-        nil))))
+; evaluate text of a node and add error child if needed
+(defn eval-init-node [node]
+  (let [script (get-source node)]
+    (try
+      (load-string script)
+      (catch Exception ex 
+        (set-error-text! (create-kid! node "") (.getMessage ex))))))
 
+; evaluate a string and put the result in the given node
+(defn eval-string [s node] 
+  (try (set-node-text! node (str (load-string s)))   
+    (catch Exception ex (set-error-text! node (.getMessage ex)))))
+
+; evaluate the source from the node above and place in the node
 (defn eval-node-above [node]
   (let [above (node-above node)]
     (if above
-      (eval-string (node-and-child-text above))
-      "NO NODE ABOVE")))
+      (eval-string (get-source above) node)
+      (set-error-text! node "NO NODE ABOVE"))))
 
+; evaluate the text in the parent node and put the result in the node
 (defn eval-parent-node [node]
-  (eval-string (.. node (getParentNode) (getText))))
+  (let [parent (parent-node node)
+        grandpa (parent-node parent)]    
+    (eval-string 
+      (str
+        ; look for and include a namespace def in the grandparent
+        (if (and grandpa 
+              (.startsWith (.trim (node-text grandpa)) "(ns ")) 
+          (node-text grandpa))
+        (node-text parent)) 
+      node) ))
 
-; eval script and explode seq result as kids of node
-(defn eval-and-explode [node script-node max-size]
-  (let [script (.getText script-node)]
-    (try 
-      (let [result (load-string script)]
-        (if (seq? result)
-          (do 
-            (doseq [res (take max-size result)] (create-kid node (str res)))
-            (set-node-text node "["))
-          (set-node-text node (str result))))
-      (catch Exception ex (set-node-text node (.getMessage ex))))))
+; eval script and explode under node with limit
+(defn eval-explode-string [script node max-size]
+  (try 
+    (let [result (load-string script)]
+      (if (seq? result)
+        (do 
+          (doseq [res (take max-size result)] (create-kid! node (str res)))
+          (set-node-text! node "["))
+        (set-node-text! node (str result))))
+    (catch Exception ex (set-error-text! node (.getMessage ex)))))
 
-(defn handle-node-update [node]
-  (let [text (.getText node)]
-    (cond (= text "?"   ) (set-node-text node (eval-parent-node node))
-          (= text "??"  ) (set-node-text node (eval-node-above node))
-          (= text "???" ) (set-node-text node (node-and-child-text (node-above node)))
-          (= text "?>"  ) (eval-and-explode node (.getParentNode node) 30)
-          (= text "?>>" ) (eval-and-explode node (.getParentNode node) 100)
-          (= text "?>>>") (eval-and-explode node (.getParentNode node) 1000))))
+; eval/explode parent node
+(defn eval-explode-parent [node max-size]
+  (eval-explode-string (node-text (parent-node node)) node max-size))
+
+; eval/explode node above
+(defn eval-explode-above [node max-size]
+  (let [above (node-above node)]
+    (if above
+      (eval-explode-string (get-source above) node max-size)
+      (set-error-text! node "NO NODE ABOVE"))))
+
+; set up a script node linked from the parent
+(defn setup-hook [node]
+  (let [parent (parent-node node)]
+    (.setLink parent (str "#" (.. node (getModeController) (getNodeID node))))
+    (set-node-text! node "#script")
+    (refresh-node! parent)))
+
+
+(def command-map {
+  "?"     eval-parent-node
+  "??"    eval-node-above
+  "???"   #(set-node-text! % (get-source (node-above %)))
+  
+  "?>"    #(eval-explode-parent % 30)
+  "?>>"   #(eval-explode-parent % 100)
+  "?>>>"  #(eval-explode-parent % 1000)
+  
+  "??>"   #(eval-explode-above % 30)
+  "??>>"  #(eval-explode-above % 100)
+  "??>>>" #(eval-explode-above % 1000)
+  
+  "/hook" #(setup-hook %)
+  
+  ;----for experimentation:
+  "/test" (fn [node] (set-node-text! node (apply str (map #(.getName %) (.getIcons (parent-node node))))))
+  
+})
 
 ;----------------------------------------------------------------
-; Entry points - called by the ClojureRegistration tree listener
+; Entry point - called by the ClojureRegistration tree listener
 
-(defn on-node-change [updated-node] (handle-node-update updated-node) )
+(defn on-node-change [updated-node] 
+  (let [handler (command-map (node-text updated-node))]
+    (if handler
+      (handler updated-node))))
+
+(defn init-node [node] (eval-init-node node))
 
 ;----------------------------------------------------------------
 ; Entry points - called by the ClojureNodeHook 
