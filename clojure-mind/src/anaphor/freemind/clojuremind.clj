@@ -74,6 +74,13 @@
     (set-node-text! node "#script")
     (refresh-node! parent)))
 
+; save source pointed at by a node to file named in text
+(defn save-node-file [node]
+  (let [script (get-source node)
+        filename (node-text node)
+        file (relative-file node filename)]
+    (with-open [writer (java.io.FileWriter. file)]
+      (.write writer script))))
 
 (def command-map {
   "?"     eval-parent-node
@@ -104,6 +111,8 @@
       (handler updated-node))))
 
 (defn init-node [node] (eval-init-node node))
+
+(defn save-node [node] (save-node-file node))
 
 ;----------------------------------------------------------------
 ; Entry points - called by the ClojureNodeHook 

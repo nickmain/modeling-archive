@@ -3,15 +3,14 @@
  */
 package anaphor.freemind;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.*;
 import java.util.logging.Logger;
 
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 
-import clojure.lang.DynamicClassLoader;
 import clojure.lang.RT;
 import freemind.extensions.HookRegistration;
 import freemind.modes.MindMap;
@@ -31,7 +30,23 @@ import freemind.modes.mindmapmode.MindMapNodeModel;
 public class ClojureRegistration implements HookRegistration {
 
     static final Logger logger = Logger.getLogger( "Clojure" );
-    private static ClassLoader loader = new DynamicClassLoader( ClojureRegistration.class.getClassLoader() );
+    
+    /**
+     * URLClassLoader that exposes the addURL method
+     */
+    public static class ClojureURLClassLoader extends URLClassLoader {
+        public ClojureURLClassLoader() {
+            super( new URL[0], ClojureRegistration.class.getClassLoader() );
+        }
+
+        @Override
+        public void addURL( URL url ) {
+            super.addURL( url );
+        }
+    }
+    
+    private static final ClojureURLClassLoader baseLoader = new ClojureURLClassLoader();
+    private static final Collection<URL> knownURLs = new HashSet<URL>();
     
     //namespace of the Clojure-side logic
     private static final String CLOJURE_NS = "anaphor.freemind.clojuremind";
@@ -40,7 +55,7 @@ public class ClojureRegistration implements HookRegistration {
     static {
         try {         
             logger.info( "Loading Clojure boot script.." );
-            Thread.currentThread().setContextClassLoader( loader );
+            Thread.currentThread().setContextClassLoader( baseLoader );
             clojure.main.main( new String[] { "@/anaphor/freemind/clojuremind.clj" } );
         }
         catch( Exception e ) {
@@ -50,6 +65,9 @@ public class ClojureRegistration implements HookRegistration {
     
     //initialization queue
     private static LinkedList<MindMapNode> initQueue = new LinkedList<MindMapNode>();
+    
+    //classpath queue
+    private static LinkedList<MindMapNode> classpathQueue = new LinkedList<MindMapNode>();
     
     private final MindMapController controller;
     private TreeModelListener listener;
@@ -68,10 +86,29 @@ public class ClojureRegistration implements HookRegistration {
     }
     
     /**
+     * Enqueue a node for classpath processing
+     */
+    public static void enqueueForClasspath( MindMapNode node ) {
+        synchronized( classpathQueue ) {
+            classpathQueue.add( node );
+        }
+    }
+    
+    /**
+     * Add a URL to the classloader
+     */
+    public static synchronized void addClassPathURL( URL url ) {
+        if( knownURLs.contains( url ) ) return;
+        
+        knownURLs.add( url );
+        baseLoader.addURL( url );
+    }
+    
+    /**
      * Call into the Clojure code 
      */
     public static Object callClojure( String fnName, Object arg ) throws Exception {
-        Thread.currentThread().setContextClassLoader( loader );
+        Thread.currentThread().setContextClassLoader( baseLoader );
         return RT.var( CLOJURE_NS, fnName ).invoke( arg );
     }
     
@@ -82,6 +119,24 @@ public class ClojureRegistration implements HookRegistration {
     public void register() {
         logger.info( "Clojure register" );
 
+        //process classpath hook nodes
+        synchronized( classpathQueue ) {
+            List<MindMapNode> others = new ArrayList<MindMapNode>();
+            
+            while( ! classpathQueue.isEmpty() ) {
+                MindMapNodeModel node = (MindMapNodeModel) classpathQueue.removeFirst();
+                if( node.getModeController() == this.controller ) {
+                    ClojureClassPathHook.processNode( node );
+                }
+                else {
+                    others.add( node );
+                }
+            }
+            
+            //put back nodes from other maps
+            classpathQueue.addAll( others );
+        }
+        
         //process init hook nodes
         synchronized( initQueue ) {
             List<MindMapNode> others = new ArrayList<MindMapNode>();

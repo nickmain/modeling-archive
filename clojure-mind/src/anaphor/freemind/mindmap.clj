@@ -11,14 +11,24 @@
       (if (.startsWith link "#") 
         (.. node (getModeController) (getNodeFromID (.substring link 1)))))))
 
-; get the text from a linked file, nil if no link
-(defn file-link [node]
+; get a File with name relative to the mindmap of the node
+(defn relative-file [node filename]
+  (let [mm-file (.. node (getMap) (getFile))]
+    (java.io.File. (.getParentFile mm-file) filename)))
+
+; get a File linked from node - nil if none
+(defn linked-file [node]
   (let [link (.getLink node)]
     (if link
-      (if (or (.startsWith link "#") (.startsWith link "http:")) nil
-        (let [mm-file (.. node (getMap) (getFile))
-              src-file (java.io.File. (.getParentFile mm-file) link)]
-          (anaphor.freemind.util.FileUtils/readFile src-file))))))
+      (if (or (.startsWith link "#") (.startsWith link "http:")) 
+        nil
+        (relative-file node link)))))
+
+; get the text from a linked file, nil if no link
+(defn file-link [node]
+  (let [file (linked-file node)]
+    (if file 
+      (anaphor.freemind.util.FileUtils/readFile file))))
 
 ; get the children of a node
 (defn node-children [node] (.getChildren node))
@@ -61,7 +71,7 @@
 ; append a new child node and return
 (defn create-kid! [node text]
   (let [controller (.. node (getMap) (getModeController))]
-    (let [new-node (.addNewNode controller node (.getChildCount node) false )]
+    (let [new-node (.addNewNode controller node (.getChildCount node) (.isLeft node) )]
       (set-node-text! new-node text)
       new-node)))
 

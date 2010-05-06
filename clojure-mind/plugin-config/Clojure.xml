@@ -2,16 +2,33 @@
 <plugin label="plugins/clojure">
 	<plugin_classpath jar="clojure/clojure_plugin.jar" />
 	<plugin_classpath jar="clojure/clojure.jar" />
+    <plugin_classpath jar="clojure/2p.jar" />
 	<plugin_registration 
 	    class_name="anaphor.freemind.ClojureRegistration"
 		isPluginBase="true">
 		<plugin_mode class_name="freemind.modes.mindmapmode" />
 	</plugin_registration>
     <plugin_action 
+        name="clojure_classpath_hook_name" 
+        base="freemind.extensions.PermanentNodeHookAdapter"
+        label="clojure_classpath_hook" 
+        class_name="anaphor.freemind.ClojureClassPathHook" 
+        instanciation="Once">
+        <plugin_mode class_name="freemind.modes.mindmapmode" />
+    </plugin_action>
+    <plugin_action 
         name="clojure_init_hook_name" 
         base="freemind.extensions.PermanentNodeHookAdapter"
         label="clojure_init_hook" 
         class_name="anaphor.freemind.ClojureInitHook" 
+        instanciation="Once">
+        <plugin_mode class_name="freemind.modes.mindmapmode" />
+    </plugin_action>
+    <plugin_action 
+        name="clojure_save_hook_name" 
+        base="freemind.extensions.PermanentNodeHookAdapter"
+        label="clojure_save_hook" 
+        class_name="anaphor.freemind.ClojureSaveHook" 
         instanciation="Once">
         <plugin_mode class_name="freemind.modes.mindmapmode" />
     </plugin_action>
