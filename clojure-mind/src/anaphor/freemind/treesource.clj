@@ -35,9 +35,10 @@
       (if linkfile-src linkfile-src
         (let [text (.trim (node-text node))
             terminator (form-terminator text)]
-        (str
-          text
-          (if (.startsWith text ";") "\n" " ")
-          (apply str (map get-source (node-children node)))
-          terminator ))))))
+          (if (.startsWith text "//") ""
+            (str
+              text
+              (if (.startsWith text ";") "\n" " ")
+              (apply str (map get-source (node-children node)))
+              terminator )))))))
 

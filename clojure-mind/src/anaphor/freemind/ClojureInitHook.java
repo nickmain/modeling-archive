@@ -18,6 +18,10 @@ public class ClojureInitHook extends PermanentNodeHookAdapter {
     @Override
     public void loadFrom( XMLElement child ) {
         super.loadFrom( child );
+        
+        //defer to plugin registration time since the map isn't fully set up
+        //until then and classpath hooks need to be processed first
         ClojureRegistration.enqueueForInit( getNode() );
     }
+    
 }

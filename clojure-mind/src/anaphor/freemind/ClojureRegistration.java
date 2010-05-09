@@ -3,6 +3,7 @@
  */
 package anaphor.freemind;
 
+import java.awt.Color;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -12,7 +13,10 @@ import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 
 import clojure.lang.RT;
+import clojure.lang.Var;
 import freemind.extensions.HookRegistration;
+import freemind.extensions.NodeHook;
+import freemind.modes.MindIcon;
 import freemind.modes.MindMap;
 import freemind.modes.MindMapNode;
 import freemind.modes.ModeController;
@@ -49,7 +53,7 @@ public class ClojureRegistration implements HookRegistration {
     private static final Collection<URL> knownURLs = new HashSet<URL>();
     
     //namespace of the Clojure-side logic
-    private static final String CLOJURE_NS = "anaphor.freemind.clojuremind";
+    public static final String CLOJURE_NS = "anaphor.freemind.clojuremind";
     
     //load the clojure code
     static {
@@ -79,7 +83,7 @@ public class ClojureRegistration implements HookRegistration {
     /**
      * Enqueue a node for initialization processing
      */
-    public static void enqueueForInit( MindMapNode node ) {
+    /*pkg*/ static void enqueueForInit( MindMapNode node ) {
         synchronized( initQueue ) {
             initQueue.add( node );
         }
@@ -88,12 +92,12 @@ public class ClojureRegistration implements HookRegistration {
     /**
      * Enqueue a node for classpath processing
      */
-    public static void enqueueForClasspath( MindMapNode node ) {
+    /*pkg*/ static void enqueueForClasspath( MindMapNode node ) {
         synchronized( classpathQueue ) {
             classpathQueue.add( node );
         }
     }
-    
+        
     /**
      * Add a URL to the classloader
      */
@@ -111,7 +115,15 @@ public class ClojureRegistration implements HookRegistration {
         Thread.currentThread().setContextClassLoader( baseLoader );
         return RT.var( CLOJURE_NS, fnName ).invoke( arg );
     }
-    
+
+    /**
+     * Get a Clojure Var
+     */
+    public static Var getVar( String namespace, String name ) {
+        Thread.currentThread().setContextClassLoader( baseLoader );
+        return RT.var( namespace, name );
+    }
+
     /**
      * @see freemind.extensions.HookRegistration#register()
      */
@@ -169,6 +181,8 @@ public class ClojureRegistration implements HookRegistration {
                 Object[] path = e.getPath();
                 MindMapNode node = (MindMapNode) path[path.length - 1];
                 
+                if( handleHookCommand( node ) ) return;
+                
                 try {
                     callClojure( "on-node-change", node );
                 }
@@ -192,6 +206,50 @@ public class ClojureRegistration implements HookRegistration {
         controller.getMap().addTreeModelListener( listener );
     }
 
+    /**
+     * Handle a hook command on a node
+     * 
+     * @return true if a command was handled
+     */
+    private boolean handleHookCommand( MindMapNode node ) {
+        String text = node.getText();
+        
+        if( "/classpath".equals( text ) ) {
+            addHook( node, "clojure_classpath_hook", "classpath", "wizard", Color.blue );
+            return true;
+        }
+        else if( "/init".equals( text ) ) {
+            addHook( node, "clojure_init_hook", "initialize", "wizard", Color.blue );
+            return true;            
+        }
+        else if( "/save".equals( text ) ) {
+            addHook( node, "clojure_save_hook", "save", "wizard", Color.blue );
+            return true;
+        }
+        else if( "/hook".equals( text ) ) {
+            addHook( node, "clojure_hook", "default hook", "bookmark", null );
+            return true;
+        }
+
+        return false;
+    }
+    
+    /**
+     * Install a node hook
+     */
+    public void addHook( MindMapNode node, String name, String text, String iconName, Color color ) {
+        NodeHook hook = controller.createNodeHook( name, node, node.getMap() );
+        node.setText( text );
+        if( color != null ) node.setColor( color );
+        if( iconName != null ) {
+            while( ! node.getIcons().isEmpty() ) node.removeIcon( 0 ); //clear the icons
+            node.addIcon( MindIcon.factory( iconName ), 0 );
+        }
+
+        node.invokeHook( hook );        
+        controller.nodeRefresh( node );
+    }
+    
     /**
      * @see freemind.extensions.HookRegistration#deRegister()
      */

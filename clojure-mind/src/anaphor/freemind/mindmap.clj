@@ -91,3 +91,7 @@
       (if (> posn 0)
         (.. parent (getChildren) (get (- posn 1)))
         nil))))
+
+; get all descendants of a node in depth-first order
+(defn node-descendants [node]
+  (rest (tree-seq #(.hasChildren %) node-children node)))

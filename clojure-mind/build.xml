@@ -1,17 +1,58 @@
-<project basedir="." default="" name="ClojureMind">
+<project basedir="." default="build-and-release" name="ClojureMind">
 
 	<property file="build.properties" />
 	
+    <!-- Clean the build results -->
+    <target name="clean" >
+    	<delete dir="build" />
+        <delete dir="dist" />
+    </target>	
+
+    <!-- Set up the build dirs -->
+    <target name="setup" >
+        <mkdir dir="build"/>        
+        <mkdir dir="dist" />
+        <mkdir dir="dist/zip" />
+        <mkdir dir="dist/zip/clojure" />
+    </target>   
+
+    <!-- Compile Java code and copy Clojure source -->
+    <target name="compile" >
+        <javac srcdir="src"
+        	   destdir="build"
+        	   source="1.6">
+            <classpath>
+                <path path="${clojure.path}/clojure.jar" />
+                <path path="${freemind.lib}/freemind.jar" />
+            </classpath>
+        </javac>
+    	<copy todir="build">
+    	    <fileset dir="src">
+    	        <include name="**/*.clj"/>
+    	    </fileset>
+    	</copy>
+    </target>	
+
+    <!-- Make the jar -->
+    <target name="make-jar" >
+        <jar destfile="dist/zip/clojure/clojure-plugin.jar" basedir="build" ></jar>
+    </target>
+    
 	<!-- Build and deploy to Freemind -->
-	<target name="build-and-deploy" >
+	<target name="build-and-deploy" depends="compile" >
 	
 	</target>
 	
     <!-- Build and make release ZIP -->
-    <target name="build-and-release" >
-    
+    <target name="build-and-release" depends="clean,setup,compile,make-jar">
+        <copy todir="dist/zip/clojure">
+            <fileset dir="${clojure.path}">
+                <include name="*.*"/>
+            </fileset>
+        </copy>
+        <copy file="plugin-config/Clojure.xml"
+              todir="dist/zip" />
+        <zip destfile="dist/clojuremind.zip" basedir="dist/zip" />
     </target>
-	
-	
 	
 </project>

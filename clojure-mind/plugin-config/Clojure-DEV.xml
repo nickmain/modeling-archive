@@ -2,7 +2,7 @@
 <plugin label="plugins/clojure">
 	<plugin_classpath jar="/Users/nickmain/workspace/Anaphor/clojure-mind/eclipse-build" />
     <plugin_classpath jar="/Users/nickmain/workspace/Anaphor/common/lib/clojure/clojure.jar" />
-    <plugin_classpath jar="/Users/nickmain/workspace/Anaphor/common/lib/tuprolog/2p.jar" />
+    <plugin_classpath jar="/Users/nickmain/workspace/Anaphor/common/lib/clojure/clojure-contrib.jar" />    
 	<plugin_registration 
 	    class_name="anaphor.freemind.ClojureRegistration"
 		isPluginBase="true">

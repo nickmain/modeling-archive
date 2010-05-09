@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <plugin label="plugins/clojure">
-	<plugin_classpath jar="clojure/clojure_plugin.jar" />
+	<plugin_classpath jar="clojure/clojure-plugin.jar" />
 	<plugin_classpath jar="clojure/clojure.jar" />
-    <plugin_classpath jar="clojure/2p.jar" />
+    <plugin_classpath jar="clojure/clojure-contrib.jar" />
 	<plugin_registration 
 	    class_name="anaphor.freemind.ClojureRegistration"
 		isPluginBase="true">
 		<plugin_mode class_name="freemind.modes.mindmapmode" />
-	</plugin_registration>
+	</plugin_registration> 
     <plugin_action 
         name="clojure_classpath_hook_name" 
         base="freemind.extensions.PermanentNodeHookAdapter"

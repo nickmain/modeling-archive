@@ -67,13 +67,6 @@
       (eval-explode-string (get-source above) node max-size)
       (set-error-text! node "NO NODE ABOVE"))))
 
-; set up a script node linked from the parent
-(defn setup-hook [node]
-  (let [parent (parent-node node)]
-    (.setLink parent (str "#" (.. node (getModeController) (getNodeID node))))
-    (set-node-text! node "#script")
-    (refresh-node! parent)))
-
 ; save source pointed at by a node to file named in text
 (defn save-node-file [node]
   (let [script (get-source node)
@@ -82,7 +75,7 @@
     (with-open [writer (java.io.FileWriter. file)]
       (.write writer script))))
 
-(def command-map {
+(def command-map {               
   "?"     eval-parent-node
   "??"    eval-node-above
   "???"   #(set-node-text! % (get-source (node-above %)))
@@ -95,15 +88,13 @@
   "??>>"  #(eval-explode-above % 100)
   "??>>>" #(eval-explode-above % 1000)
   
-  "/hook" #(setup-hook %)
-  
   ;----for experimentation:
   "/test" (fn [node] (set-node-text! node (apply str (map #(.getName %) (.getIcons (parent-node node))))))
   
 })
 
 ;----------------------------------------------------------------
-; Entry point - called by the ClojureRegistration tree listener
+; Entry points called from Java
 
 (defn on-node-change [updated-node] 
   (let [handler (command-map (node-text updated-node))]
@@ -115,18 +106,11 @@
 (defn save-node [node] (save-node-file node))
 
 ;----------------------------------------------------------------
-; Entry points - called by the ClojureNodeHook 
+; Default node hook 
 
-(defn on-select-hook [ hook-node node-view ] nil)
-(defn on-deselect-hook [ hook-node node-view ] nil)
-(defn on-view-created-hook [ hook-node node-view ] nil)
-(defn on-view-removed-hook [ hook-node node-view ] nil)
-(defn on-update-hook [ hook-node ] nil)
-(defn on-add-child-hook [ hook-node added-node ] nil)
-(defn on-new-child-hook [ hook-node new-node ] nil)
-(defn on-add-descendant-hook [ hook-node added-node ] nil)
-(defn on-remove-child-hook [ hook-node old-child-node ] nil)
-(defn on-remove-descendant-hook [ hook-node old-child-node old-parent-node ] nil)
-(defn on-update-descendant-hook [ hook-node updated-node ] nil)
-(defn on-save-hook [ hook-node hookElement ] nil)
-(defn on-load-hook [ hook-node hookElement ] nil)
+(defn node-hook [ hook-node changed-node parent-node is-add ] 
+  (cond
+    (= hook-node changed-node) nil    
+    is-add      (set-node-text! hook-node (str "Child added =>\n"   (node-text changed-node)))
+    parent-node (set-node-text! hook-node (str "Child removed =>\n" (node-text changed-node)))
+    true        (set-node-text! hook-node (str "Child update =>\n"  (node-text changed-node)))))
