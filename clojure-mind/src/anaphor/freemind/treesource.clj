@@ -40,7 +40,8 @@
           (if (.startsWith text "//") ""
             (str
               text
-              (if (.startsWith text ";") "\n" " ")
+              (if (.startsWith text ";") "\n"
+                (if (= 0 (.length text)) "" " "))
               (apply str (map get-source (node-children node)))
               terminator )))))))
 
