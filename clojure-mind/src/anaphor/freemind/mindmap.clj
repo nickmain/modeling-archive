@@ -11,10 +11,18 @@
       (if (.startsWith link "#") 
         (.. node (getModeController) (getNodeFromID (.substring link 1)))))))
 
+; whether a filename is relative or absolute
+(defn is-absolute-file? [filename]
+  (or 
+    (.startsWith filename "/")
+    (= 1 (.indexOf filename ":"))))
+
 ; get a File with name relative to the mindmap of the node
 (defn relative-file [node filename]
   (let [mm-file (.. node (getMap) (getFile))]
-    (java.io.File. (.getParentFile mm-file) filename)))
+    (if (is-absolute-file? filename)
+      (java.io.File. filename)
+      (java.io.File. (.getParentFile mm-file) filename))))
 
 ; get a File linked from node - nil if none
 (defn linked-file [node]

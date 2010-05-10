@@ -32,18 +32,22 @@
       (eval-string (get-source above) node)
       (set-error-text! node "NO NODE ABOVE"))))
 
-; evaluate the text in the parent node and put the result in the node
-(defn eval-parent-node [node]
+; get the eval text from parent - include grand-parent if namespace decl
+(defn parent-eval-text [node]
   (let [parent (parent-node node)
-        grandpa (parent-node parent)]    
-    (eval-string 
+        grandpa (parent-node parent)]
       (str
         ; look for and include a namespace def in the grandparent
         (if (and grandpa 
               (.startsWith (.trim (node-text grandpa)) "(ns ")) 
           (node-text grandpa))
-        (node-text parent)) 
-      node) ))
+        (node-text parent))))
+
+; evaluate the text in the parent node and put the result in the node
+(defn eval-parent-node [node] 
+  (eval-string 
+    (parent-eval-text node) 
+    node))
 
 ; eval script and explode under node with limit
 (defn eval-explode-string [script node max-size]
@@ -58,7 +62,7 @@
 
 ; eval/explode parent node
 (defn eval-explode-parent [node max-size]
-  (eval-explode-string (node-text (parent-node node)) node max-size))
+  (eval-explode-string (parent-eval-text node) node max-size))
 
 ; eval/explode node above
 (defn eval-explode-above [node max-size]

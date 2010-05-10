@@ -38,6 +38,7 @@ public class ClojureSaveHook extends PermanentNodeHookAdapter {
                 errNode.setText( e.getMessage() );
                 errNode.setStateIcon( "error", MindIcon.factory( "messagebox_warning" ).getIcon() );
                 errNode.setColor( Color.red );
+                controller.nodeRefresh( errNode );
             }
         }
     }
