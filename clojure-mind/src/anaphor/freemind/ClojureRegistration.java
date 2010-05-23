@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 
+import clojure.lang.IFn;
 import clojure.lang.RT;
 import clojure.lang.Var;
 import freemind.extensions.HookRegistration;
@@ -52,6 +53,9 @@ public class ClojureRegistration implements HookRegistration {
     private static final ClojureURLClassLoader baseLoader = new ClojureURLClassLoader();
     private static final Collection<URL> knownURLs = new HashSet<URL>();
     
+    //user-defined commands
+    private static final Map<String, IFn> userCommands = new HashMap<String, IFn>();
+    
     //namespace of the Clojure-side logic
     public static final String CLOJURE_NS = "anaphor.freemind.clojuremind";
     
@@ -80,6 +84,23 @@ public class ClojureRegistration implements HookRegistration {
         this.controller = (MindMapController) controller;
     }
 
+    /**
+     * Register a user command
+     * @param cmd the command string
+     * @param function the function to call
+     */
+    public static void registerCommand( String cmd, IFn function ) {
+        userCommands.put( cmd, function );
+    }
+    
+    /**
+     * Drop a user command
+     * @param cmd the command string
+     */
+    public static void removeCommand( String cmd ) {
+        userCommands.remove( cmd );
+    }
+    
     /**
      * Enqueue a node for initialization processing
      */
@@ -183,6 +204,8 @@ public class ClojureRegistration implements HookRegistration {
                 
                 if( handleHookCommand( node ) ) return;
                 
+                if( handleUserCommand( node ) ) return;
+                
                 try {
                     callClojure( "on-node-change", node );
                 }
@@ -206,6 +229,40 @@ public class ClojureRegistration implements HookRegistration {
         controller.getMap().addTreeModelListener( listener );
     }
 
+    /**
+     * Handle a user command
+     * @param node the changed node
+     * @return true if a user command was handled
+     */
+    private boolean handleUserCommand( MindMapNode node ) {
+        String text = node.getText();
+        IFn func = userCommands.get( text );
+        
+        if( func == null ) return false;
+        
+        logger.info( "Executing user command " + text + " ..." );
+        Thread.currentThread().setContextClassLoader( baseLoader );
+        try {
+            Object result = func.invoke( node );
+            if( result == null ) result = "OK";
+            
+            node.setColor( Color.black );
+            node.setStateIcon( "error", null );
+            node.setText( result.toString() );
+            controller.nodeRefresh( node );
+        }
+        catch( Exception e ) {
+            e.printStackTrace();
+            
+            node.setText( e.toString() );
+            node.setStateIcon( "error", MindIcon.factory( "messagebox_warning" ).getIcon() );
+            node.setColor( Color.red );
+            controller.nodeRefresh( node );
+        }
+        
+        return true;
+    }
+    
     /**
      * Handle a hook command on a node
      * 

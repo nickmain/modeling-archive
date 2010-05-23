@@ -22,6 +22,5 @@ public class ClojureInitHook extends PermanentNodeHookAdapter {
         //defer to plugin registration time since the map isn't fully set up
         //until then and classpath hooks need to be processed first
         ClojureRegistration.enqueueForInit( getNode() );
-    }
-    
+    }    
 }

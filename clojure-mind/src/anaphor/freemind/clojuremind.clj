@@ -12,6 +12,14 @@
 ; set node text in red with a warning icon
 (defn set-error-text! [node text] (set-node-text! node text 16rff0000 warning-icon))
 
+; register a user command
+(defn reg-user-cmd [cmd-string function]
+  (anaphor.freemind.ClojureRegistration/registerCommand cmd-string function))
+
+; remove a user command
+(defn remove-user-cmd [cmd-string]
+  (anaphor.freemind.ClojureRegistration/removeCommand cmd-string))
+
 ; evaluate text of a node and add error child if needed
 (defn eval-init-node [node]
   (let [script (get-source node)]
