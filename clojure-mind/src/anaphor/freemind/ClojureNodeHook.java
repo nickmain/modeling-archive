@@ -3,9 +3,12 @@
  */
 package anaphor.freemind;
 
-import clojure.lang.Var;
+import java.awt.Color;
+
+import clojure.lang.IFn;
 import freemind.extensions.PermanentNodeHookAdapter;
 import freemind.main.XMLElement;
+import freemind.modes.MindIcon;
 import freemind.modes.MindMapNode;
 
 /**
@@ -16,55 +19,72 @@ import freemind.modes.MindMapNode;
 public class ClojureNodeHook extends PermanentNodeHookAdapter {
 
     { ClojureRegistration.logger.info( "**** ClojureNodeHook **** " + hashCode() ); }
+
+    private static final String ERROR_PREFIX = "ERROR: ";
+    private static final String LOAD_FN = "load-hook-script";
     
-    private static final String NAMESPACE_ATTR = "cljns";
-    private static final String FN_NAME_ATTR = "cljfn";
-    private static final String DEFAULT_HOOK_FN = "node-hook";
+    private IFn hookFunction;
+    private String scriptSource = "anaphor.freemind.clojuremind/node-hook";
     
-    private String namespace = ClojureRegistration.CLOJURE_NS;
-    private String funcName  = DEFAULT_HOOK_FN;
+    /**
+     * Set an error message on the node
+     */
+    private void setError( String message ) {
+        MindMapNode node = getNode();
+        node.setText( ERROR_PREFIX + message );
+        node.setStateIcon( "error", MindIcon.factory( "messagebox_warning" ).getIcon() );
+        node.setColor( Color.red );
+        getController().nodeRefresh( node );
+    }
     
     /**
      * Call the clojure hook function
+     * 
+     * @param onlyIfChanged if true then only call if the script has changed
      */
-    private void callClojure( MindMapNode changeNode, MindMapNode parent, boolean isAdd ) {
-        Var fn = ClojureRegistration.getVar( namespace, funcName );
-        if( fn == null ) {
-            logger.warning( "Hook function not found: " + namespace + "/" + funcName );
-            return;
-        }
+    private void callClojure( MindMapNode changedNode, MindMapNode parentNode, boolean isAdd ) {
+        
+        MindMapNode node = getNode();
+
+        //if text indicates error then do nothing to avoid looping
+        String text = node.getPlainTextContent();
+        if( text != null && text.startsWith( ERROR_PREFIX ) ) return;
+        
+        //reload script if changed
+        if( hookFunction == null ) {
+
+            try {
+                Object fn = ClojureRegistration.callClojure( 
+                                ClojureRegistration.CLOJURE_NS, LOAD_FN, 
+                                scriptSource );
+    
+                if( fn == null ) {
+                    setError( "Hook script must return a function (got null/nil)" );
+                    return;
+                }
+                
+                if( fn instanceof IFn ) {
+                    hookFunction = (IFn) fn;
+                }
+                else {
+                    setError( "Hook script must return a function (got " + fn.getClass().getSimpleName() + ")" );
+                    return;
+                }
+            }
+            catch( Exception e ) {
+                setError( e.getMessage() );
+                return;
+            }
+        }    
         
         try {
-            fn.invoke( getNode(), changeNode, parent, isAdd );
+            ClojureRegistration.callClojure( hookFunction, node, changedNode, parentNode, isAdd );
         }
-        catch( Exception e ) {            
-            logger.severe( "While calling node hook " + namespace + "/" + funcName + " : " + e );
-            e.printStackTrace();
+        catch( Exception e ) {
+            setError( e.getMessage() );
         }
     }
-    
-    /**
-     * @see freemind.extensions.PermanentNodeHookAdapter#loadFrom(freemind.main.XMLElement)
-     */
-    @Override
-    public void loadFrom( XMLElement xml ) {
-        super.loadFrom( xml );
-
-        namespace = xml.getStringAttribute( NAMESPACE_ATTR, ClojureRegistration.CLOJURE_NS );
-        funcName  = xml.getStringAttribute( FN_NAME_ATTR, DEFAULT_HOOK_FN );
-    }
-
-    /**
-     * @see freemind.extensions.PermanentNodeHookAdapter#save(freemind.main.XMLElement)
-     */
-    @Override
-    public void save( XMLElement xml ) {
-        super.save( xml );
         
-        xml.setAttribute( NAMESPACE_ATTR, namespace );
-        xml.setAttribute( FN_NAME_ATTR, funcName );
-    }
-    
     /**
      * @see freemind.extensions.PermanentNodeHookAdapter#onAddChild(freemind.modes.MindMapNode)
      */
@@ -115,40 +135,20 @@ public class ClojureNodeHook extends PermanentNodeHookAdapter {
     /** @see freemind.extensions.PermanentNodeHookAdapter#onUpdateNodeHook() */
     @Override
     public void onUpdateNodeHook() {
-        String text = getNode().getText();
-        if( text.equals( "=/" ) ) {
-            namespace = ClojureRegistration.CLOJURE_NS;
-            funcName = DEFAULT_HOOK_FN;
-            getNode().setNoteText( "" );
-            getNode().setText( "HOOK RESET" );
-            getController().nodeRefresh( getNode() );
-            return;
-        }
-        
-        if( text.startsWith( "=" ) ) {
-            text = text.substring( 1 );
-            
-            int slash = text.indexOf( "/" );
-            if( slash > 0 ) {
-                namespace = text.substring( 0, slash );
-                funcName  = text.substring( slash + 1 );
-
-                if( namespace.length() > 0 && funcName.length() > 0 ) {
-                    getNode().setNoteText( "Clojure hook:\n namespace=" + namespace + "\n name=" + funcName );
-                    getNode().setText( "HOOK SET" );
-                    getController().nodeRefresh( getNode() );
-                    return;
-                }
-            }
-            
-            namespace = ClojureRegistration.CLOJURE_NS;
-            funcName = DEFAULT_HOOK_FN;
-            getNode().setNoteText( "" );
-            getNode().setText( "ERROR: use namespace/fn-name | HOOK RESET" );
-            getController().nodeRefresh( getNode() );
-            return;
-        }
-        
         callClojure( getNode(), null, false );
+    }
+
+    /** @see freemind.extensions.PermanentNodeHookAdapter#loadFrom(freemind.main.XMLElement) */
+    @Override
+    public void loadFrom( XMLElement child ) {
+        super.loadFrom( child );
+        scriptSource = child.getContent().trim();
+    }
+
+    /** @see freemind.extensions.PermanentNodeHookAdapter#save(freemind.main.XMLElement) */
+    @Override
+    public void save( XMLElement xml ) {
+        super.save( xml );
+        xml.setContent( scriptSource );
     }
 }

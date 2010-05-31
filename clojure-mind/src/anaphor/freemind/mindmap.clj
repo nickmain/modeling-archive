@@ -1,4 +1,4 @@
-; Copyright (c) David N Main. All right reserved
+; Copyright (c) David N Main. All rights reserved
 
 (ns #^{:doc    "Functions for accessing and manipulating a Freemind mindmap"
        :author "Nick Main"}
@@ -103,3 +103,36 @@
 ; get all descendants of a node in depth-first order
 (defn node-descendants [node]
   (rest (tree-seq #(.hasChildren %) node-children node)))
+
+; add an attribute to a node
+(defn add-node-attr [node name val]
+  (if (nil? val)
+    (add-node-attr node name "")    
+    (.. node getModeController 
+      (addAttribute node 
+        (freemind.modes.attributes.Attribute. name val)))))
+
+; add attributes to a node from a map
+(defn add-node-attrs [node m]
+  (doseq [entry (seq m)]
+    (add-node-attr node (key entry) (val entry))))
+
+; set attributes of a node from a map (does not refresh)
+(defn set-node-attrs! [node m]
+  (let [attrs (.. node getAttributes getAttributes)
+        controller (.getModeController node)]
+    (.clear attrs)
+    (add-node-attrs node m)))
+
+; get node attrs as a map
+(defn node-attrs [node] 
+  (reduce 
+    (fn [m attr] (assoc m (.getName attr) (.getValue attr))) 
+    (hash-map) 
+    (seq (.. node getAttributes getAttributes toArray))))
+
+; get a lazy tree rooted in the given node
+(defn lazy-node-tree [node] 
+  {:text (node-text node)
+   :kids (lazy-seq (map lazy-node-tree (node-children node)))
+   :attrs (node-attrs node)})

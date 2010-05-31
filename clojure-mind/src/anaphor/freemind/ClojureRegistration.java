@@ -130,13 +130,61 @@ public class ClojureRegistration implements HookRegistration {
     }
     
     /**
-     * Call into the Clojure code 
+     * Find a Clojure var
+     * @param name the qualified name (ns default to clojuremind)
      */
-    public static Object callClojure( String fnName, Object arg ) throws Exception {
-        Thread.currentThread().setContextClassLoader( baseLoader );
-        return RT.var( CLOJURE_NS, fnName ).invoke( arg );
+    public static Var getVar( String name ) {
+
+        String ns = CLOJURE_NS;
+        String nm = name;
+        
+        int slash = name.indexOf( "/" );
+        if( slash >= 0 ) {
+            ns = name.substring( 0, slash );
+            nm = name.substring( slash + 1 );
+        }
+        
+        return getVar( ns, nm );
+    }
+    
+    /**
+     * Call a Clojure function - the fn name is qualified (or defaults to the
+     * clojuremind namespace) 
+     */
+    public static Object callClojure( String fnName, Object...args ) throws Exception {
+        return callClojure( (IFn) getVar( fnName ), args );
+    }
+ 
+    /**
+     * Call a Clojure function
+     */
+    public static Object callClojure( String namespace, String fnName, Object...args ) throws Exception {
+        Var var = getVar( namespace, fnName );
+        return callClojure( (IFn) var, args );
     }
 
+    /**
+     * Call a Clojure function
+     */
+    public static Object callClojure( IFn fn, Object...args ) throws Exception {
+        Thread.currentThread().setContextClassLoader( baseLoader );
+
+        switch( args.length ) {
+            case 0: return fn.invoke();
+            case 1: return fn.invoke( args[0] );
+            case 2: return fn.invoke( args[0], args[1] );
+            case 3: return fn.invoke( args[0], args[1], args[2] );
+            case 4: return fn.invoke( args[0], args[1], args[2], args[3] );
+            case 5: return fn.invoke( args[0], args[1], args[2], args[3], args[4] );
+            case 6: return fn.invoke( args[0], args[1], args[2], args[3], args[4], args[5] );
+            case 7: return fn.invoke( args[0], args[1], args[2], args[3], args[4], args[5], args[6] );
+            case 8: return fn.invoke( args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7] );
+            case 9: return fn.invoke( args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8] );
+
+            default: throw new RuntimeException( "UNIMPLEMENTED" );
+        }        
+    }
+    
     /**
      * Get a Clojure Var
      */
@@ -283,8 +331,17 @@ public class ClojureRegistration implements HookRegistration {
             addHook( node, "clojure_save_hook", "save", "wizard", Color.blue );
             return true;
         }
+        else if( "/http".equals( text ) ) {
+            HttpdNodeHook hook = (HttpdNodeHook) 
+                addHook( node, "httpd_hook", "hello/world", null, Color.blue );
+            
+            //make sure that the node is fully set up
+            hook.onUpdateNodeHook();
+            
+            return true;
+        }
         else if( "/hook".equals( text ) ) {
-            addHook( node, "clojure_hook", "default hook", "bookmark", null );
+            addHook( node, "clojure_hook", "HOOK ADDED", null, null );
             return true;
         }
 
@@ -294,7 +351,7 @@ public class ClojureRegistration implements HookRegistration {
     /**
      * Install a node hook
      */
-    public void addHook( MindMapNode node, String name, String text, String iconName, Color color ) {
+    public NodeHook addHook( MindMapNode node, String name, String text, String iconName, Color color ) {
         NodeHook hook = controller.createNodeHook( name, node, node.getMap() );
         node.setText( text );
         if( color != null ) node.setColor( color );
@@ -305,6 +362,8 @@ public class ClojureRegistration implements HookRegistration {
 
         node.invokeHook( hook );        
         controller.nodeRefresh( node );
+        
+        return hook;
     }
     
     /**

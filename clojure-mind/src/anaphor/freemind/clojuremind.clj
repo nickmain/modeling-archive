@@ -1,10 +1,11 @@
-; Copyright (c) David N Main. All right reserved
+; Copyright (c) David N Main. All rights reserved
 
 (ns #^{:doc    "Handler functions for mindmap commands"
        :author "Nick Main"}
   anaphor.freemind.clojuremind
   (:use anaphor.freemind.mindmap)
-  (:use anaphor.freemind.treesource))
+  (:use anaphor.freemind.treesource)
+  (:use anaphor.freemind.http))
 
 (def warning-icon (freemind-icon "messagebox_warning"))
 (def ok-icon      (freemind-icon "button-ok"))
@@ -57,15 +58,29 @@
     (parent-eval-text node) 
     node))
 
+; explode a sequence as a child node with kids
+(defn explode-kids [node data text max-size]
+  (do 
+    (doseq [res (take max-size data)] (create-kid! node (str res)))
+    (set-node-text! node text)))
+
+; explode a map as a child node with kids
+(defn explode-map [node map max-size]
+  (do 
+    (doseq [k (take max-size (keys map))] 
+      (create-kid! node (str k " " (get map k))))
+    (set-node-text! node "{")))
+
 ; eval script and explode under node with limit
 (defn eval-explode-string [script node max-size]
   (try 
     (let [result (load-string script)]
-      (if (seq? result)
-        (do 
-          (doseq [res (take max-size result)] (create-kid! node (str res)))
-          (set-node-text! node "["))
-        (set-node-text! node (str result))))
+      (cond
+        (map?    result) (explode-map  node result max-size)
+        (vector? result) (explode-kids node result "["  max-size)
+        (set?    result) (explode-kids node result "#{" max-size)
+        (seq?    result) (explode-kids node result "'(" max-size)
+        true (set-node-text! node (str result))))
     (catch Exception ex (set-error-text! node (.getMessage ex)))))
 
 ; eval/explode parent node
@@ -116,6 +131,8 @@
 (defn init-node [node] (eval-init-node node))
 
 (defn save-node [node] (save-node-file node))
+
+(defn load-hook-script [script] (load-string script))
 
 ;----------------------------------------------------------------
 ; Default node hook 

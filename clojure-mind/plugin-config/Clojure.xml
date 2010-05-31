@@ -40,4 +40,12 @@
         instanciation="Once">
         <plugin_mode class_name="freemind.modes.mindmapmode" />
     </plugin_action>
+    <plugin_action 
+        name="httpd_hook_name" 
+        base="freemind.extensions.PermanentNodeHookAdapter"
+        label="httpd_hook" 
+        class_name="anaphor.freemind.HttpdNodeHook" 
+        instanciation="Once">
+        <plugin_mode class_name="freemind.modes.mindmapmode" />
+    </plugin_action>
 </plugin>

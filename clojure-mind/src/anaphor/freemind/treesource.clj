@@ -1,4 +1,4 @@
-; Copyright (c) David N Main. All right reserved
+; Copyright (c) David N Main. All rights reserved
 
 (ns #^{:doc    "Functions for extracting Clojure source from a mindmap tree"
        :author "Nick Main"}
