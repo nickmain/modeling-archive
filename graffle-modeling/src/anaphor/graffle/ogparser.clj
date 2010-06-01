@@ -11,18 +11,9 @@
   (if rtf
     (let [doc (javax.swing.text.DefaultStyledDocument.)
           kit (javax.swing.text.rtf.RTFEditorKit.)
-          src (java.io.StringReader. rtf)]
-      (do
-        (.read kit src doc 0)
-        (.trim (.getText doc 0 (.getLength doc)))))))
-
-; get stroke attribute
-(defn stroke-attr [g attr]
-  (let [style (:Style g)]
-    (if style
-      (let [stroke (:stroke style)]
-        (if stroke
-          (attr stroke))))))
+          src (java.io.StringReader. rtf)]      
+      (.read kit src doc 0)
+      (.trim (.getText doc 0 (.getLength doc))))))
 
 ; whether stroke is dashed
 (defn dashed? [g]
