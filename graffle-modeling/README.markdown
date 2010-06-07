@@ -1,3 +1,3 @@
-An Omnigraffle diagram parser that generates a Prolog theory.
+An Omnigraffle diagram parser that generates a model as an OWL ontology.
 
-Associated Prolog theories for generating OWL ontologies from the diagram model.
+The ontology can be processed via SPARQL, DL-safe rules and other means to produce domain-specific RDF models, or to drive code generation.
