@@ -21,12 +21,11 @@
     true))
 
 ; get shape bounds as a Rectangle2D
-(defn bounds [g]
-  (let [bnds (:Bounds g)]
-    (if bnds
-      (let [tok (java.util.StringTokenizer. bnds " {},")
-            nxt #(Double/parseDouble (.nextToken tok))]
-        (java.awt.geom.Rectangle2D$Double. (nxt) (nxt) (nxt) (nxt))))))
+(defn bounds [{bnds :Bounds}]
+  (if bnds
+    (let [tok (java.util.StringTokenizer. bnds " {},")
+          nxt #(Double/parseDouble (.nextToken tok))]
+      (java.awt.geom.Rectangle2D$Double. (nxt) (nxt) (nxt) (nxt)))))
 
 ; get table rows
 (defn table-rows [g] 
