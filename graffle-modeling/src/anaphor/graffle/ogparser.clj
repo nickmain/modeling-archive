@@ -27,6 +27,12 @@
           nxt #(Double/parseDouble (.nextToken tok))]
       (java.awt.geom.Rectangle2D$Double. (nxt) (nxt) (nxt) (nxt)))))
 
+; parse a line point as a Point2D
+(defn point2d [pnt]
+  (let [tok (java.util.StringTokenizer. pnt " {},")
+        nxt #(Double/parseDouble (.nextToken tok))]
+    (java.awt.geom.Point2D$Double. (nxt) (nxt))))
+
 ; get table rows
 (defn table-rows [g] 
   (if (= :TableGroup (keyword (:Class g)))
@@ -61,6 +67,7 @@
    :tail-arrow (-> g :Style :stroke :TailArrow)
    :head-id    (-> g :Head :ID)
    :tail-id    (-> g :Tail :ID)
+   :points     (map point2d (:Points g))
    
    ; line labels
    :label-for (-> g :Line :ID)
